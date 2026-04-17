@@ -25,36 +25,51 @@ async function startServer() {
   // API routes
   app.post("/api/create-checkout-session", async (req, res) => {
     try {
-      const { priceId, userId, userEmail } = req.body;
-      console.log(`Checkout session request: priceId=${priceId}, userId=${userId}`);
+      const { priceId: rawPriceId, userId, userEmail } = req.body;
+      const priceId = rawPriceId ? String(rawPriceId).trim() : "";
+      const isTestKey = (process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
+      
+      console.log(`[Stripe] Session request: priceId=${priceId}, userId=${userId}, mode=${isTestKey ? "TEST" : "LIVE"}`);
 
       if (!process.env.STRIPE_SECRET_KEY) {
-        return res.status(500).json({ error: "Stripe secret key not configured" });
+        console.error("[Stripe] Missing STRIPE_SECRET_KEY");
+        return res.status(500).json({ error: "Stripe secret key not configured in AI Studio settings." });
       }
 
       let effectivePriceId = priceId;
 
-      // Magic Fix: If the user provided a Product ID (prod_...) instead of a Price ID (price_...)
-      // we automatically look up the first active price for that product.
-      if (priceId && priceId.startsWith("prod_")) {
-        console.log(`Detected Product ID ${priceId}. Attempting to find associated Price ID...`);
-        const prices = await stripe.prices.list({
-          product: priceId,
-          active: true,
-          limit: 1,
-        });
-        
-        if (prices.data.length > 0) {
-          effectivePriceId = prices.data[0].id;
-          console.log(`Magic Fix successful: Resolved to ${effectivePriceId}`);
-        } else {
-          return res.status(400).json({ 
-            error: `The Product ID you provided (${priceId}) has no active prices. Please go to your Stripe Dashboard and add a price to this product.` 
+      // Magic Fix: Handle Product IDs
+      if (priceId.startsWith("prod_")) {
+        console.log(`[Stripe] Resolving Product ID: ${priceId}`);
+        try {
+          const prices = await stripe.prices.list({
+            product: priceId,
+            active: true,
+            limit: 1,
+            expand: ['data.product']
           });
+          
+          if (prices.data.length > 0) {
+            effectivePriceId = prices.data[0].id;
+            console.log(`[Stripe] Resolved ${priceId} -> ${effectivePriceId}`);
+          } else {
+            console.error(`[Stripe] No active prices for product ${priceId}`);
+            return res.status(400).json({ 
+              error: `Your Stripe Product (${priceId}) has no active prices. Please go to your Stripe Dashboard, click the product, and add a price.` 
+            });
+          }
+        } catch (lookupErr: any) {
+          console.error("[Stripe] Price lookup failed:", lookupErr);
+          return res.status(400).json({ error: `Stripe Lookup Error: ${lookupErr.message}` });
         }
       }
 
-      const baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+      if (!effectivePriceId || (!effectivePriceId.startsWith("price_") && !effectivePriceId.startsWith("prod_"))) {
+        return res.status(400).json({ error: "The provided ID must start with 'price_' or 'prod_'. Please check your monthly price ID in settings." });
+      }
+
+      let baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
+      if (baseUrl.endsWith("/")) baseUrl = baseUrl.slice(0, -1);
       
       const sessionOptions: any = {
         payment_method_types: ["card"],
@@ -73,16 +88,15 @@ async function startServer() {
         },
       };
 
-      // Only add customer_email if it's a non-empty string that looks like an email
       if (userEmail && typeof userEmail === "string" && userEmail.trim().includes("@")) {
         sessionOptions.customer_email = userEmail.trim();
       }
 
       const session = await stripe.checkout.sessions.create(sessionOptions);
-
+      console.log(`[Stripe] Session created: ${session.id}`);
       res.json({ id: session.id, url: session.url });
     } catch (error: any) {
-      console.error("Stripe Error:", error);
+      console.error("[Stripe] Checkout Error:", error);
       res.status(500).json({ error: error.message });
     }
   });

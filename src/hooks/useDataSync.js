@@ -98,12 +98,21 @@ export function useDataSync({ storageKey, seed, userId: externalUserId = null })
       }
       setLoading(true);
       setSyncError(null);
+
+      // Safeguard for slow/failing Supabase connections
+      const timeout = setTimeout(() => {
+        setLoading(false);
+        setSyncError("Supabase connection timed out. Using local data fallback.");
+      }, 7000);
+
       try {
         const { data: row, error } = await supabase
           .from(USER_APP_DATA_TABLE)
           .select("payload, updated_at")
           .eq("id", userId)
           .maybeSingle();
+
+        clearTimeout(timeout);
 
         if (error) {
           console.error("[useDataSync] fetch failed:", error);
@@ -132,6 +141,7 @@ export function useDataSync({ storageKey, seed, userId: externalUserId = null })
           scheduleRemoteSave(next);
         }
       } catch (err) {
+        clearTimeout(timeout);
         console.error("[useDataSync] pull exception:", err);
         setSyncError(err instanceof Error ? err.message : String(err));
       } finally {

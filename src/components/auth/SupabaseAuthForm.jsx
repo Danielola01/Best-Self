@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
 import { C } from "../../theme/colors.js";
 import { getSupabase, isSupabaseConfigured } from "../../lib/supabaseClient.js";
@@ -18,6 +18,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
   const [loading, setLoading] = useState(null);
   const [err, setErr] = useState("");
   const [info, setInfo] = useState("");
+  const googleTimerRef = useRef(null);
 
   const supabase = getSupabase();
   const configured = isSupabaseConfigured() && supabase;
@@ -35,6 +36,12 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
     },
     [onAuthSuccess]
   );
+
+  useEffect(() => {
+    return () => {
+      if (googleTimerRef.current) clearInterval(googleTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!configured || !supabase) return;
@@ -95,14 +102,39 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
     setErr("");
     setLoading("google");
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${window.location.origin}/`,
           queryParams: { access_type: "offline", prompt: "consent" },
+          skipBrowserRedirect: true,
         },
       });
       if (error) throw error;
+
+      if (data?.url) {
+        const authWindow = window.open(data.url, "google_auth", "width=600,height=700");
+        
+        if (!authWindow) {
+          setErr("Popup blocked. Please allow popups for this site.");
+          setLoading(null);
+          return;
+        }
+
+        // Poll for session in the main window
+        googleTimerRef.current = setInterval(async () => {
+          if (authWindow.closed) {
+            clearInterval(googleTimerRef.current);
+            setLoading(null);
+          }
+          const { data: { session } } = await supabase.auth.getSession();
+          if (session) {
+            clearInterval(googleTimerRef.current);
+            authWindow.close();
+            emitSuccess(session);
+          }
+        }, 1000);
+      }
     } catch (e) {
       setErr(e.message || "Google sign-in failed.");
       setLoading(null);

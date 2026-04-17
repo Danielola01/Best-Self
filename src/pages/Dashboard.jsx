@@ -674,11 +674,11 @@ export function Dashboard({ data, setData, showMilestone, onShareStreak, onNewPr
           boxShadow: "0 12px 24px rgba(20, 83, 45, 0.15)"
         }}>
           <div style={{ position: "absolute", top: -20, right: -20, width: 120, height: 120, borderRadius: "50%", background: "rgba(255,255,255,0.05)" }} />
-          <p style={{ fontSize: 13, fontWeight: 600, opacity: 0.8, marginBottom: 8 }}>{dateStr}</p>
-          <h1 style={{ fontSize: 28, fontWeight: 800, margin: 0, lineHeight: 1.2 }}>
-            Welcome back, {data.user.name || "User"} 👋
+          <p style={{ fontSize: 13, fontWeight: 600, color: "#FFFFFF", marginBottom: 8 }}>{dateStr}</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: "#FFFFFF", margin: 0, lineHeight: 1.2 }}>
+            Welcome back, {data.user.name || "User"}
           </h1>
-          <p style={{ fontSize: 14, opacity: 0.8, marginTop: 6, lineHeight: 1.5 }}>Here's an overview of your performance journey.</p>
+          <p style={{ fontSize: 14, color: "#FFFFFF", marginTop: 6, lineHeight: 1.5 }}>Here's an overview of your performance journey.</p>
         </div>
       </header>
 

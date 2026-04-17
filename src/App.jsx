@@ -577,21 +577,28 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
     }
     setLoading(true);
     setError(null);
+    
+    // Set a safeguard timeout
+    const timeout = setTimeout(() => {
+      setLoading(false);
+      setError("The request is taking longer than expected. Please check your internet connection and try again.");
+    }, 15000);
+
     try {
       const annualPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_ANNUAL;
       const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY;
 
-      if (annual && !annualPriceId) {
-        throw new Error("Annual Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_ANNUAL to your settings.");
+      if (annual && (!annualPriceId || annualPriceId.trim() === "")) {
+        throw new Error("Annual Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_ANNUAL to your AI Studio settings.");
       }
-      if (!annual && !monthlyPriceId) {
-        throw new Error("Monthly Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_MONTHLY to your settings.");
+      if (!annual && (!monthlyPriceId || monthlyPriceId.trim() === "")) {
+        throw new Error("Monthly Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_MONTHLY to your AI Studio settings.");
       }
 
-      const priceId = annual ? annualPriceId : monthlyPriceId;
+      const priceId = (annual ? annualPriceId : monthlyPriceId).trim();
       const email = user.email || supabaseUser?.email || "";
 
-      console.log("Creating checkout session for:", { priceId, userId: authUserId, email });
+      console.log("Initiating checkout session:", { priceId, userId: authUserId, email });
 
       const response = await fetch("/api/create-checkout-session", {
         method: "POST",
@@ -605,22 +612,36 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
         }),
       });
 
+      clearTimeout(timeout);
+
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Server error: ${response.status}`);
+        let errorMsg = `Server error: ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.error || errorMsg;
+        } catch (parseErr) {
+          // Fallback if not JSON
+        }
+        throw new Error(errorMsg);
       }
 
       const session = await response.json();
       if (session.url) {
         console.log("Redirecting to Stripe Checkout:", session.url);
-        window.location.href = session.url;
+        // Stripe blocks iframe embedding. Opening in a new tab is the most reliable way 
+        // to escape the AI Studio sandbox.
+        const win = window.open(session.url, "_blank");
+        if (!win || win.closed || typeof win.closed === "undefined") {
+          console.warn("Popup blocked, falling back to window.location.href");
+          window.location.href = session.url;
+        }
       } else {
-        throw new Error("No checkout URL returned from server");
+        throw new Error("The payment server returned a successful response but no checkout URL was found.");
       }
     } catch (e) {
-      console.error("Subscription Error:", e);
-      setError(e.message);
-    } finally {
+      clearTimeout(timeout);
+      console.error("Subscription Flow Error:", e);
+      setError(e.message || "An unexpected error occurred during checkout initialization.");
       setLoading(false);
     }
   };
@@ -692,8 +713,13 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
             <p style={{ color: C.coral, fontSize: 12, lineHeight: 1.5, fontWeight: 600 }}>{error}</p>
           </div>
         )}
-        <Btn full onClick={subscribe} style={{ padding: "16px", fontSize: 15, marginBottom: 12 }}>
-          {loading ? "Processing..." : (annual ? "Subscribe Annual — Start Today" : "Subscribe Monthly — Start Today")}
+        <Btn full onClick={subscribe} disabled={loading} style={{ padding: "16px", fontSize: 15, marginBottom: 12 }}>
+          {loading ? (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ width: 14, height: 14, border: "2px solid #fff", borderTopColor: "transparent", borderRadius: "50%", animation: "spin .7s linear infinite" }} />
+              Connecting to Stripe...
+            </div>
+          ) : (annual ? "Subscribe Annual — Start Today" : "Subscribe Monthly — Start Today")}
         </Btn>
         {onClose && <button onClick={onClose} style={{ width: "100%", background: "transparent", border: "none", color: C.muted, fontSize: 12, padding: "10px", cursor: "pointer" }}>Maybe later</button>}
       </div>
@@ -955,6 +981,21 @@ export default function App() {
       }));
     }
   }, [requiresAuth, authLoading, isSignedIn, setData]);
+
+  // Handle OAuth popup close
+  useEffect(() => {
+    if (window.opener && isSignedIn) {
+      // Small delay to ensure session is fully established and storage updated
+      const timer = setTimeout(() => {
+        try {
+          window.close();
+        } catch (e) {
+          console.error("Failed to close popup:", e);
+        }
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isSignedIn]);
 
   // Check if already onboarded (re-check when data/auth load)
   useEffect(() => {
