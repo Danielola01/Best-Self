@@ -22,50 +22,23 @@ async function startServer() {
 
   app.use(express.json());
 
-  // API routes
-  app.post("/api/create-checkout-session", async (req, res) => {
+  // Support both legacy API paths and direct Netlify function paths in preview
+  const handleCheckout = async (req: express.Request, res: express.Response) => {
     try {
       const { priceId: rawPriceId, userId, userEmail } = req.body;
       const priceId = rawPriceId ? String(rawPriceId).trim() : "";
-      const isTestKey = (process.env.STRIPE_SECRET_KEY || "").startsWith("sk_test_");
       
-      console.log(`[Stripe] Session request: priceId=${priceId}, userId=${userId}, mode=${isTestKey ? "TEST" : "LIVE"}`);
+      console.log(`[Stripe Preview] Session request: priceId=${priceId}, userId=${userId}`);
 
       if (!process.env.STRIPE_SECRET_KEY) {
-        console.error("[Stripe] Missing STRIPE_SECRET_KEY");
-        return res.status(500).json({ error: "Stripe secret key not configured in AI Studio settings." });
+        return res.status(500).json({ error: "Stripe secret key not configured." });
       }
 
       let effectivePriceId = priceId;
 
-      // Magic Fix: Handle Product IDs
       if (priceId.startsWith("prod_")) {
-        console.log(`[Stripe] Resolving Product ID: ${priceId}`);
-        try {
-          const prices = await stripe.prices.list({
-            product: priceId,
-            active: true,
-            limit: 1,
-            expand: ['data.product']
-          });
-          
-          if (prices.data.length > 0) {
-            effectivePriceId = prices.data[0].id;
-            console.log(`[Stripe] Resolved ${priceId} -> ${effectivePriceId}`);
-          } else {
-            console.error(`[Stripe] No active prices for product ${priceId}`);
-            return res.status(400).json({ 
-              error: `Your Stripe Product (${priceId}) has no active prices. Please go to your Stripe Dashboard, click the product, and add a price.` 
-            });
-          }
-        } catch (lookupErr: any) {
-          console.error("[Stripe] Price lookup failed:", lookupErr);
-          return res.status(400).json({ error: `Stripe Lookup Error: ${lookupErr.message}` });
-        }
-      }
-
-      if (!effectivePriceId || (!effectivePriceId.startsWith("price_") && !effectivePriceId.startsWith("prod_"))) {
-        return res.status(400).json({ error: "The provided ID must start with 'price_' or 'prod_'. Please check your monthly price ID in settings." });
+        const prices = await stripe.prices.list({ product: priceId, active: true, limit: 1 });
+        if (prices.data.length > 0) effectivePriceId = prices.data[0].id;
       }
 
       let baseUrl = process.env.APP_URL || `${req.protocol}://${req.get("host")}`;
@@ -73,19 +46,12 @@ async function startServer() {
       
       const sessionOptions: any = {
         payment_method_types: ["card"],
-        line_items: [
-          {
-            price: effectivePriceId,
-            quantity: 1,
-          },
-        ],
+        line_items: [{ price: effectivePriceId, quantity: 1 }],
         mode: "subscription",
         success_url: `${baseUrl}/?checkout=success`,
         cancel_url: `${baseUrl}/?checkout=cancel`,
         client_reference_id: userId,
-        metadata: {
-          userId: userId,
-        },
+        metadata: { userId },
       };
 
       if (userEmail && typeof userEmail === "string" && userEmail.trim().includes("@")) {
@@ -93,13 +59,34 @@ async function startServer() {
       }
 
       const session = await stripe.checkout.sessions.create(sessionOptions);
-      console.log(`[Stripe] Session created: ${session.id}`);
       res.json({ id: session.id, url: session.url });
     } catch (error: any) {
-      console.error("[Stripe] Checkout Error:", error);
+      console.error("[Stripe Preview] Error:", error);
       res.status(500).json({ error: error.message });
     }
-  });
+  };
+
+  app.post("/api/create-checkout-session", handleCheckout);
+  app.post("/.netlify/functions/create-checkout", handleCheckout);
+
+  const handleSuggestions = async (req: express.Request, res: express.Response) => {
+    try {
+      if (!genAI) return res.status(500).json({ error: "Gemini API key not configured" });
+      const { dim, existingGoals, userName } = req.body;
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const existing = existingGoals.filter(Boolean).join(", ") || "none set yet";
+      const prompt = `You are a world-class life coach helping ${userName} set powerful ${dim} goals for their 90-day cycle. Return ONLY a JSON array of 3 strings.`;
+      const result = await model.generateContent(prompt);
+      const text = (await result.response).text();
+      const clean = text.replace(/```json|```/g, "").trim();
+      res.json(JSON.parse(clean));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  app.post("/api/ai/suggestions", handleSuggestions);
+  app.post("/.netlify/functions/ai-suggestions", handleSuggestions);
 
   // Stripe Webhook
   app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
