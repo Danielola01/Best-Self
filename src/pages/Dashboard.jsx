@@ -152,7 +152,7 @@ function DzProjectAnalytics({ dimensionData, pct90 }) {
         <p style={{ color: C.text, fontSize: 16, fontWeight: 800, margin: 0 }}>Project Analytics</p>
         <span style={{ color: C.muted, fontSize: 14, fontWeight: 700 }}>{pct90}% Time Elapsed</span>
       </div>
-      <div style={{ height: 280 }}>
+      <div style={{ height: 280, minHeight: 280 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={dimensionData} margin={{ top: 10, right: 10, left: -15, bottom: 20 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />

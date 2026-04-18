@@ -21,7 +21,13 @@ export function useSupabaseAuth() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, s) => {
+    } = supabase.auth.onAuthStateChange(async (event, s) => {
+      if (event === "TOKEN_REFRESHED") {
+        console.log("Supabase Token Refreshed");
+      }
+      if (event === "SIGNED_OUT") {
+        // Clear local cache if needed
+      }
       setSession(s);
     });
 

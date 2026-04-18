@@ -195,12 +195,12 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
   const labelStyle = { display: "block", fontSize: 13, fontWeight: 700, color: "black", marginBottom: 6, textAlign: "left" };
   const inputStyle = {
     width: "100%",
-    background: CREAM,
-    border: "none",
+    background: "#FFFFFF",
+    border: "1px solid rgba(0,0,0,0.1)",
     borderRadius: 12,
     color: "#000",
     fontSize: 15,
-    padding: "16px 20px",
+    padding: "20px 24px",
     outline: "none",
     fontWeight: 500
   };
@@ -211,7 +211,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
     color: "white",
     border: "none",
     borderRadius: 4, // Sharp corners as requested "sharp corners"
-    padding: "18px",
+    padding: "20px",
     fontSize: 16,
     fontWeight: 800,
     cursor: loading ? "wait" : "pointer",
@@ -266,14 +266,14 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
         }}
       />
 
-      <div className="rise" style={{ width: "100%", maxWidth: 440, padding: 32, textAlign: "center" }}>
+      <div className="rise" style={{ width: "100%", maxWidth: 480, padding: 32, textAlign: "center" }}>
         
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 32 }}>
           <Logo size={24} />
         </div>
 
         <div style={{ marginBottom: 32 }}>
-          <h2 style={{ fontSize: 32, fontWeight: 800, color: "black", letterSpacing: "-0.02em" }}>
+          <h2 style={{ fontSize: 24, fontWeight: 500, color: "black", letterSpacing: "-0.01em" }}>
             {tab === "login" ? "Welcome back" : "Create account"}
           </h2>
         </div>
@@ -317,7 +317,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
             <button 
               type="button" 
               onClick={() => setShowPassword(!showPassword)}
-              style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
+              style={{ position: "absolute", right: 20, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", padding: 0 }}
             >
               {showPassword ? <EyeOff size={18} color="#888" /> : <Eye size={18} color="#888" />}
             </button>

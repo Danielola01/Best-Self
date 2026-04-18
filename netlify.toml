@@ -6,6 +6,16 @@
   directory = "netlify/functions"
 
 [[redirects]]
+  from = "/api/create-checkout-session"
+  to = "/.netlify/functions/create-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai/suggestions"
+  to = "/.netlify/functions/ai-suggestions"
+  status = 200
+
+[[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/:splat"
   status = 200

@@ -68,6 +68,7 @@ async function startServer() {
 
   app.post("/api/create-checkout-session", handleCheckout);
   app.post("/.netlify/functions/create-checkout", handleCheckout);
+  app.post("/.netlify/functions/create-checkout-session", handleCheckout);
 
   const handleSuggestions = async (req: express.Request, res: express.Response) => {
     try {
@@ -87,6 +88,7 @@ async function startServer() {
 
   app.post("/api/ai/suggestions", handleSuggestions);
   app.post("/.netlify/functions/ai-suggestions", handleSuggestions);
+  app.post("/.netlify/functions/ai/suggestions", handleSuggestions);
 
   // Stripe Webhook
   app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), async (req, res) => {
