@@ -1,6 +1,25 @@
 [build]
   command = "npm run build"
+  functions = "netlify/functions"
   publish = "dist"
+
+[functions]
+  node_bundle = true
+
+[[redirects]]
+  from = "/api/create-checkout-session"
+  to = "/.netlify/functions/create-checkout"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai/suggestions"
+  to = "/.netlify/functions/ai-suggestions"
+  status = 200
+
+[[redirects]]
+  from = "/api/webhooks/stripe"
+  to = "/.netlify/functions/stripe-webhook"
+  status = 200
 
 [[redirects]]
   from = "/*"
