@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { 
   LayoutDashboard, 
   Calendar, 
@@ -382,11 +382,27 @@ function Divider({ style = {} }) {
 /* ═══════════════════════════════════════════════════════════
    STREAK SHARE MODAL
 ═══════════════════════════════════════════════════════════ */
+const STREAK_QUOTES = [
+  "Small daily wins lead to giant results.",
+  "Consistency is what transforms average into excellence.",
+  "Focus on progress, not perfection.",
+  "The best way to predict the future is to create it.",
+  "You are what you repeatedly do.",
+  "Discipline is the bridge between goals and accomplishment.",
+  "Don't stop when you're tired, stop when you're done.",
+  "Your only limit is you.",
+  "Action is the foundational key to all success.",
+  "Success is the sum of small efforts repeated daily."
+];
+
 function StreakShareModal({ streak, userName, milestone, onClose }) {
   const canvasRef = useRef(null);
   const [copied, setCopied] = useState(false);
   const milColor = milestone?.color || C.gold;
   const milLabel = milestone?.label || `${streak}-Week Streak`;
+  
+  // Pick a random quote on mount
+  const quote = useMemo(() => STREAK_QUOTES[Math.floor(Math.random() * STREAK_QUOTES.length)], []);
 
   // Draw the share card onto canvas
   useEffect(() => {
@@ -396,70 +412,121 @@ function StreakShareModal({ streak, userName, milestone, onClose }) {
     const W = 1080, H = 1080;
     canvas.width = W; canvas.height = H;
 
-    // Background
-    ctx.fillStyle = "#080A0F";
-    ctx.fillRect(0, 0, W, H);
+    const draw = (bgImg = null) => {
+      // Background
+      ctx.fillStyle = "#080A0F";
+      ctx.fillRect(0, 0, W, H);
 
-    // Radial glow top-right
-    const g1 = ctx.createRadialGradient(W * 0.8, H * 0.15, 0, W * 0.8, H * 0.15, 400);
-    g1.addColorStop(0, `${milColor}22`); g1.addColorStop(1, "transparent");
-    ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+      if (bgImg) {
+        ctx.save();
+        ctx.globalAlpha = 0.4;
+        ctx.drawImage(bgImg, 0, 0, W, H);
+        ctx.restore();
+      }
 
-    // Radial glow bottom-left
-    const g2 = ctx.createRadialGradient(W * 0.15, H * 0.85, 0, W * 0.15, H * 0.85, 320);
-    g2.addColorStop(0, "#F4C54218"); g2.addColorStop(1, "transparent");
-    ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+      // Radial glow top-right
+      const g1 = ctx.createRadialGradient(W * 0.8, H * 0.15, 0, W * 0.8, H * 0.15, 600);
+      g1.addColorStop(0, `${milColor}22`); g1.addColorStop(1, "transparent");
+      ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
 
-    // Border
-    ctx.strokeStyle = `${milColor}40`;
-    ctx.lineWidth = 3;
-    ctx.strokeRect(30, 30, W - 60, H - 60);
+      // Central Glow behind number
+      const g3 = ctx.createRadialGradient(W / 2, H / 2 - 40, 0, W / 2, H / 2 - 40, 500);
+      g3.addColorStop(0, `${milColor}33`); g3.addColorStop(1, "transparent");
+      ctx.fillStyle = g3; ctx.fillRect(0, 0, W, H);
 
-    // BestSelf wordmark
-    ctx.fillStyle = "#F0ECE3";
-    ctx.font = "bold 52px serif";
-    ctx.fillText("Best", 80, 120);
-    ctx.fillStyle = "#FF6B35";
-    ctx.fillText("Self", 80 + ctx.measureText("Best").width, 120);
+      // Border
+      ctx.strokeStyle = `${milColor}60`;
+      ctx.lineWidth = 6;
+      ctx.strokeRect(50, 50, W - 100, H - 100);
 
-    // Streak number
-    ctx.fillStyle = milColor;
-    ctx.font = `bold 280px serif`;
-    ctx.textAlign = "center";
-    ctx.fillText(streak, W / 2, H / 2 - 40);
+      // BestSelf wordmark
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "bold 56px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText("Best", 100, 140);
+      ctx.fillStyle = "#22C55E";
+      ctx.fillText("Self", 100 + ctx.measureText("Best").width + 4, 140);
 
-    // WEEK STREAK label
-    ctx.fillStyle = "#7A8099";
-    ctx.font = "600 52px 'Arial', sans-serif";
-    ctx.letterSpacing = "12px";
-    ctx.fillText("WEEK STREAK", W / 2, H / 2 + 70);
-
-    // Milestone badge
-    if (milestone) {
-      ctx.fillStyle = `${milColor}22`;
-      ctx.beginPath();
-      ctx.roundRect(W / 2 - 220, H / 2 + 120, 440, 80, 40);
-      ctx.fill();
-      ctx.strokeStyle = `${milColor}55`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
+      // Streak number
+      ctx.shadowColor = milColor;
+      ctx.shadowBlur = 30;
       ctx.fillStyle = milColor;
-      ctx.font = "700 34px 'Arial', sans-serif";
-      ctx.fillText(milLabel.toUpperCase(), W / 2, H / 2 + 172);
-    }
+      ctx.font = "bold 340px 'Plus Jakarta Sans', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(streak, W / 2, H / 2 - 20);
+      ctx.shadowBlur = 0;
 
-    // Name
-    ctx.fillStyle = "#D8D4CC";
-    ctx.font = "400 44px serif";
-    ctx.fillText(userName || "BestSelf User", W / 2, H - 200);
+      // WEEK STREAK label
+      ctx.fillStyle = "#94A3B8";
+      ctx.font = "800 48px 'Plus Jakarta Sans', sans-serif";
+      ctx.letterSpacing = "16px";
+      ctx.fillText("WEEK STREAK", W / 2, H / 2 + 100);
 
-    // Tagline
-    ctx.fillStyle = "#3A4155";
-    ctx.font = "400 34px 'Arial', sans-serif";
-    ctx.fillText("Building my BestSelf — 90 days at a time", W / 2, H - 130);
+      // Milestone badge
+      if (milestone) {
+        ctx.fillStyle = "rgba(255,255,255,0.08)";
+        ctx.beginPath();
+        ctx.roundRect(W / 2 - 260, H / 2 + 160, 520, 100, 50);
+        ctx.fill();
+        ctx.strokeStyle = `${milColor}`;
+        ctx.lineWidth = 4;
+        ctx.stroke();
+        ctx.fillStyle = milColor;
+        ctx.font = "800 40px 'Plus Jakarta Sans', sans-serif";
+        ctx.letterSpacing = "4px";
+        ctx.fillText(milLabel.toUpperCase(), W / 2, H / 2 + 222);
+      }
 
-    ctx.textAlign = "left";
-  }, [streak, milestone, userName]);
+      // Quote centered
+      ctx.fillStyle = "#FFFFFF";
+      ctx.font = "italic 500 42px 'Plus Jakarta Sans', sans-serif";
+      ctx.textAlign = "center";
+      
+      // Wrap text
+      const maxWidth = 800;
+      const words = quote.split(" ");
+      let line = "";
+      let lines = [];
+      for (let n = 0; n < words.length; n++) {
+        let testLine = line + words[n] + " ";
+        let metrics = ctx.measureText(testLine);
+        if (metrics.width > maxWidth && n > 0) {
+          lines.push(line);
+          line = words[n] + " ";
+        } else {
+          line = testLine;
+        }
+      }
+      lines.push(line);
+      
+      lines.forEach((l, i) => {
+        ctx.fillText(l.trim(), W / 2, H - 350 + (i * 54));
+      });
+
+      // Name
+      ctx.fillStyle = "#F8FAF9";
+      ctx.font = "600 48px 'Plus Jakarta Sans', sans-serif";
+      ctx.fillText(userName || "BestSelf User", W / 2, H - 180);
+
+      // Tagline
+      ctx.fillStyle = "#64748B";
+      ctx.font = "500 32px 'Plus Jakarta Sans', sans-serif";
+      ctx.letterSpacing = "1px";
+      ctx.fillText("Building my best self — one day at a time", W / 2, H - 120);
+
+      ctx.textAlign = "left";
+      ctx.letterSpacing = "0px";
+    };
+
+    // Load blur image
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = `https://picsum.photos/seed/${streak + (new Date().getDate())}/1080/1080?blur=3`;
+    img.onload = () => draw(img);
+    img.onerror = () => draw();
+    
+    // Initial draw
+    draw();
+  }, [streak, milestone, userName, milColor, milLabel, quote]);
 
   const downloadCard = () => {
     const canvas = canvasRef.current;
@@ -474,6 +541,7 @@ function StreakShareModal({ streak, userName, milestone, onClose }) {
   const shareTwitter = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`, "_blank");
   const shareLinkedIn = () => window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent("https://bestself.app")}&summary=${encodeURIComponent(shareText)}`, "_blank");
   const shareWhatsApp = () => window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, "_blank");
+  const shareInstagram = () => window.open("https://www.instagram.com", "_blank");
   const copyClipboard = () => { navigator.clipboard.writeText(shareText).catch(() => { }); setCopied(true); setTimeout(() => setCopied(false), 2200); };
 
   const ShareBtn = ({ onClick, label, color, icon }) => (
@@ -489,14 +557,55 @@ function StreakShareModal({ streak, userName, milestone, onClose }) {
       <div className="popin" style={{ width: "100%", maxWidth: 380, background: C.surface, borderRadius: 20, border: `1px solid ${C.border}`, overflow: "hidden" }}>
 
         {/* Preview card */}
-        <div style={{ background: "#080A0F", position: "relative", padding: "32px 24px", textAlign: "center", borderBottom: `1px solid ${C.border}` }}>
-          <div style={{ position: "absolute", top: -20, right: -20, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle,${milColor}22,transparent 70%)` }} />
-          <div style={{ position: "absolute", bottom: -20, left: -20, width: 100, height: 100, borderRadius: "50%", background: `radial-gradient(circle,${C.gold}14,transparent 70%)` }} />
-          <Logo size={14} />
-          <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 88, fontWeight: 700, color: milColor, lineHeight: 1, margin: "16px 0 8px" }}>{streak}</div>
-          <p style={{ color: C.muted, fontSize: 10, letterSpacing: 4, fontWeight: 700, marginBottom: 12 }}>WEEK STREAK</p>
-          {milestone && <div style={{ display: "inline-block", background: `${milColor}18`, border: `1px solid ${milColor}44`, borderRadius: 99, padding: "6px 18px" }}><span style={{ color: milColor, fontSize: 11, fontWeight: 700 }}>{milestone.label.toUpperCase()}</span></div>}
-          <p style={{ color: C.faint, fontSize: 11, marginTop: 14 }}>{userName || "BestSelf User"} · Building my best self</p>
+        <div style={{ background: "#080A0F", position: "relative", padding: "40px 24px", textAlign: "center", borderBottom: `1px solid ${C.border}`, overflow: "hidden" }}>
+          
+          {/* Blur background image */}
+          <div style={{ 
+            position: "absolute", inset: 0, opacity: 0.4, 
+            backgroundImage: `url(https://picsum.photos/seed/${streak + (new Date().getDate())}/600/600?blur=3)`,
+            backgroundSize: "cover", backgroundPosition: "center"
+          }} />
+
+          <div style={{ position: "absolute", top: -20, right: -20, width: 140, height: 140, borderRadius: "50%", background: `radial-gradient(circle,${milColor}33,transparent 70%)` }} />
+          <div style={{ position: "absolute", bottom: -20, left: -20, width: 120, height: 120, borderRadius: "50%", background: `radial-gradient(circle,${C.gold}22,transparent 70%)` }} />
+          
+          <div style={{ position: "relative", zIndex: 1, display: "flex", justifyContent: "center" }}>
+            <Logo size={14} light />
+          </div>
+
+          <div style={{ position: "relative", zIndex: 1 }}>
+            <div style={{ 
+              fontFamily: "'Plus Jakarta Sans',sans-serif", 
+              fontSize: 96, 
+              fontWeight: 800, 
+              color: milColor, 
+              lineHeight: 1, 
+              margin: "24px 0 8px",
+              textShadow: `0 0 20px ${milColor}44`
+            }}>
+              {streak}
+            </div>
+            <p style={{ color: "#94A3B8", fontSize: 11, letterSpacing: 4, fontWeight: 800, marginBottom: 16 }}>WEEK STREAK</p>
+            {milestone && (
+              <div style={{ 
+                display: "inline-block", 
+                background: "rgba(255,255,255,0.05)", 
+                border: `1px solid ${milColor}66`, 
+                borderRadius: 99, 
+                padding: "8px 20px" 
+              }}>
+                <span style={{ color: milColor, fontSize: 11, fontWeight: 800, letterSpacing: 1 }}>{milestone.label.toUpperCase()}</span>
+              </div>
+            )}
+
+            {/* Dynamic Quote */}
+            <p style={{ color: "#FFFFFF", fontSize: 13, fontStyle: "italic", marginTop: 24, padding: "0 20px", lineHeight: 1.5, opacity: 0.9 }}>
+              "{quote}"
+            </p>
+
+            <p style={{ color: "#F8FAF9", fontSize: 12, fontWeight: 600, marginTop: 24 }}>{userName || "BestSelf User"}</p>
+            <p style={{ color: "#64748B", fontSize: 11, marginTop: 4 }}>Building my best self</p>
+          </div>
         </div>
 
         {/* Share actions */}
@@ -506,18 +615,27 @@ function StreakShareModal({ streak, userName, milestone, onClose }) {
             <ShareBtn onClick={shareTwitter} label="X / Twitter" color="#1DA1F2" icon="𝕏" />
             <ShareBtn onClick={shareLinkedIn} label="LinkedIn" color="#0A66C2" icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="#0A66C2"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z" /><circle cx="4" cy="4" r="2" /></svg>} />
             <ShareBtn onClick={shareWhatsApp} label="WhatsApp" color="#25D366" icon="💬" />
-            <ShareBtn onClick={downloadCard} label="Instagram" color={C.lavender} icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.lavender} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.5" fill={C.lavender} stroke="none" /></svg>} />
+            <ShareBtn onClick={shareInstagram} label="Instagram" color={C.lavender} icon={<svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={C.lavender} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" /><circle cx="12" cy="12" r="5" /><circle cx="17.5" cy="6.5" r="1.5" fill={C.lavender} stroke="none" /></svg>} />
           </div>
-          <button onClick={copyClipboard} className="tap"
-            style={{ width: "100%", background: copied ? `${C.mint}20` : C.card, border: `1px solid ${copied ? C.mint : C.border}`, borderRadius: 10, padding: "12px", color: copied ? C.mint : C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .25s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
-            {copied
-              ? <><Icons.Check size={14} color={C.mint} /> Copied to clipboard!</>
-              : <>
-                <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
-                Copy text to clipboard
-              </>
-            }
-          </button>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <button onClick={downloadCard} className="tap"
+              style={{ width: "100%", background: "#fff", border: `1px solid ${C.border}`, borderRadius: 10, padding: "12px", color: C.text, fontSize: 13, fontWeight: 700, cursor: "pointer", transition: "all .2s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+              Download Share Card
+            </button>
+
+            <button onClick={copyClipboard} className="tap"
+              style={{ width: "100%", background: copied ? `${C.mint}20` : C.card, border: `1px solid ${copied ? C.mint : C.border}`, borderRadius: 10, padding: "12px", color: copied ? C.mint : C.muted, fontSize: 13, fontWeight: 600, cursor: "pointer", transition: "all .25s", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              {copied
+                ? <><Icons.Check size={14} color={C.mint} /> Copied to clipboard!</>
+                : <>
+                  <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" /></svg>
+                  Copy text to clipboard
+                </>
+              }
+            </button>
+          </div>
           <canvas ref={canvasRef} style={{ display: "none" }} />
         </div>
 

@@ -12,7 +12,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { Pencil, Play, Square, Plus, Check, Target, X } from "lucide-react";
+import { Pencil, Play, Square, Plus, Check, Target, X, Share2, ChevronRight, RotateCcw } from "lucide-react";
 import { TRIAL_DAYS, DIMS } from "../lib/appConstants.js";
 import { computeStreak, getMilestone, trialDaysLeft, pickRotatingQuote } from "../lib/appLogics.js";
 import { Avatar, Bar } from "../components/app/AppPrimitive.jsx";
@@ -353,7 +353,7 @@ function DzProjectProgress({ totalPct }) {
   );
 }
 
-function DzProjects({ projects = [], onNew, onToggle }) {
+function DzProjects({ projects = [], onNew, onToggle, onDelete }) {
   const colors = [
     { color: "#E8F9F1", border: "#D1FAE5" },
     { color: "#E0F2FE", border: "#BAE6FD" },
@@ -364,40 +364,48 @@ function DzProjects({ projects = [], onNew, onToggle }) {
 
   return (
     <DzCard>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
-        <p style={{ color: C.text, fontSize: 16, fontWeight: 800, margin: 0 }}>Project</p>
-        <button onClick={onNew} style={{ 
-          background: "transparent", 
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 28 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 800, color: C.text, margin: 0 }}>Project</h2>
+        <button onClick={onNew} className="tap" style={{ 
+          background: "#fff", 
           border: `1px solid ${C.border}`, 
-          borderRadius: 8, 
-          padding: "6px 12px", 
-          fontSize: 12, 
+          borderRadius: 12, 
+          padding: "8px 18px", 
+          fontSize: 14, 
           fontWeight: 700, 
           color: C.text,
           display: "flex",
           alignItems: "center",
-          gap: 6,
-          cursor: "pointer"
+          gap: 8,
+          cursor: "pointer",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.02)"
         }}>
-          <Plus size={14} /> New
+          <Plus size={16} /> New
         </button>
       </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
         {projects.length === 0 ? (
-          <div style={{ padding: "20px 0", textAlign: "center", color: C.muted, fontSize: 13 }}>
+          <div style={{ padding: "40px 0", textAlign: "center", color: C.muted, fontSize: 13, background: "#F9FAFB", borderRadius: 12 }}>
             No projects yet. Click "+ New" to add one.
           </div>
         ) : (
           projects.map((p, i) => {
             const theme = colors[i % colors.length];
             return (
-              <div key={p.id || i} style={{ display: "flex", alignItems: "center", gap: 16, padding: "14px 0", borderBottom: i < projects.length - 1 ? `1px solid ${C.border}` : "none" }}>
+              <div key={p.id || i} style={{ 
+                display: "flex", 
+                alignItems: "center", 
+                gap: 16, 
+                padding: "20px 0", 
+                borderBottom: i < projects.length - 1 ? `1px solid ${C.border}80` : "none" 
+              }}>
                 <button 
                   onClick={() => onToggle(p.id)}
+                  className="tap"
                   style={{ 
-                    width: 36, 
-                    height: 36, 
-                    borderRadius: 10, 
+                    width: 44, 
+                    height: 44, 
+                    borderRadius: 14, 
                     background: p.done ? C.agroGreen : (p.color || theme.color), 
                     border: `1px solid ${p.done ? C.agroGreen : (p.border || theme.border)}`, 
                     flexShrink: 0,
@@ -408,12 +416,21 @@ function DzProjects({ projects = [], onNew, onToggle }) {
                     transition: "all 0.2s"
                   }}
                 >
-                  {p.done && <Check size={20} color="#fff" />}
+                  {p.done ? <Check size={24} color="#fff" /> : <div style={{ width: 8, height: 8, borderRadius: "50%", background: p.done ? "#fff" : "transparent" }} />}
                 </button>
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: 14, fontWeight: 800, color: p.done ? C.muted : C.text, margin: 0, textDecoration: p.done ? "line-through" : "none" }}>{p.title}</p>
-                  <p style={{ fontSize: 12, color: C.muted, marginTop: 4, margin: 0 }}>Due date: {p.due || "Not set"}</p>
+                  <p style={{ fontSize: 16, fontWeight: 800, color: p.done ? C.muted : C.text, margin: 0, textDecoration: p.done ? "line-through" : "none" }}>{p.title}</p>
+                  <p style={{ fontSize: 13, color: C.muted, marginTop: 4, margin: 0, display: "flex", alignItems: "center", gap: 4 }}>
+                    Due date: {p.due || "Not set"}
+                  </p>
                 </div>
+                <button 
+                  onClick={() => onDelete?.(p.id)}
+                  className="tap"
+                  style={{ background: "transparent", border: "none", padding: 8, color: `${C.border}EE`, cursor: "pointer" }}
+                >
+                  <X size={16} />
+                </button>
               </div>
             );
           })
@@ -477,46 +494,60 @@ function ProjectModal({ onClose, onSave }) {
   );
 }
 
-function DzQuickActions({ onStart, onNewProject, compact = false }) {
+function DzQuickActions({ onStart, onNewProject, onResetCycle, compact = false }) {
   const btnStyle = { 
     background: "#fff", 
-    padding: compact ? "12px 16px" : "20px", 
-    borderRadius: 16, 
+    padding: compact ? "16px 16px" : "24px", 
+    borderRadius: 20, 
     border: `1px solid ${C.border}`, 
     display: "flex", 
     alignItems: "center", 
-    gap: compact ? 10 : 16, 
+    gap: 16, 
     cursor: "pointer",
     textAlign: "left",
     outline: "none",
     flex: 1,
-    minWidth: 0
+    minWidth: 0,
+    transition: "all 0.2s ease",
+    boxShadow: "0 4px 6px rgba(15,23,42,0.02)"
   };
 
   return (
     <section style={{ flex: compact ? "0 0 420px" : "1", width: "100%" }}>
       {!compact && <p style={{ color: C.muted, fontSize: 12, fontWeight: 700, letterSpacing: 0.5, marginBottom: 16 }}>QUICK ACTIONS</p>}
-      <div style={{ display: "flex", flexDirection: "row", gap: compact ? 12 : 20, width: "100%" }}>
+      <div style={{ display: "flex", flexDirection: "row", gap: 16, width: "100%" }}>
         <button type="button" onClick={onStart} className="tap" style={btnStyle}>
-          <div style={{ width: compact ? 32 : 40, height: compact ? 32 : 40, borderRadius: 10, background: "#F8FAF9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Play size={compact ? 16 : 20} color={C.agroGreen} />
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: `${C.sunrise}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Share2 size={compact ? 16 : 22} color={C.sunrise} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: compact ? 13 : 14, fontWeight: 700, color: C.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>Continue Learning</p>
-            {!compact && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Pick up where you left off</p>}
+            <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>Share Streak</p>
+            {!compact && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Post your progress</p>}
           </div>
-          {!compact && <Pencil size={18} color={C.border} />}
+          <ChevronRight size={18} color={C.border} />
         </button>
         <button type="button" onClick={onNewProject} className="tap" style={btnStyle}>
-          <div style={{ width: compact ? 32 : 40, height: compact ? 32 : 40, borderRadius: 10, background: "#F8FAF9", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <Plus size={compact ? 16 : 20} color={C.agroGreen} />
+          <div style={{ width: 44, height: 44, borderRadius: 14, background: `${C.agroGreen}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+            <Plus size={compact ? 16 : 22} color={C.agroGreen} />
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ fontSize: compact ? 13 : 14, fontWeight: 700, color: C.text, margin: 0, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>New Project</p>
-            {!compact && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Start a new performance cycle</p>}
+            <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>New Project</p>
+            {!compact && <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Add a goal to your list</p>}
           </div>
-          {!compact && <Pencil size={18} color={C.border} />}
+          <ChevronRight size={18} color={C.border} />
         </button>
+        {!compact && (
+          <button type="button" onClick={onResetCycle} className="tap" style={btnStyle}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: `${C.coral}15`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <RotateCcw size={22} color={C.coral} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 16, fontWeight: 700, color: C.text, margin: 0 }}>New Cycle</p>
+              <p style={{ fontSize: 12, color: C.muted, margin: 0 }}>Reset for 90 days</p>
+            </div>
+            <ChevronRight size={18} color={C.border} />
+          </button>
+        )}
       </div>
     </section>
   );
@@ -625,6 +656,13 @@ export function Dashboard({ data, setData, showMilestone, onShareStreak, onNewPr
     }));
   };
 
+  const handleDeleteProject = (id) => {
+    setData(d => ({
+      ...d,
+      projects: (d.projects || []).filter(p => p.id !== id)
+    }));
+  };
+
   const handleAddMember = (newMember) => {
     setData(d => ({
       ...d,
@@ -683,6 +721,8 @@ export function Dashboard({ data, setData, showMilestone, onShareStreak, onNewPr
       </header>
 
       <div className="dz-dashboard-content" style={{ padding: "0 32px", display: "flex", flexDirection: "column", gap: 32 }}>
+        {quote && <DzQuote quote={quote} />}
+
         <DzKpiRow 
           weeks={data.weeks} 
           days={days} 
@@ -695,7 +735,7 @@ export function Dashboard({ data, setData, showMilestone, onShareStreak, onNewPr
             <div style={{ flex: 1 }}>
               <DzProjectProgress totalPct={finalProgress} />
             </div>
-            <DzQuickActions onStart={() => onShareStreak?.()} onNewProject={onNewProject} compact />
+            <DzQuickActions onStart={() => onShareStreak?.()} onNewProject={() => setIsProjectModalOpen(true)} onResetCycle={onNewProject} compact />
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -707,10 +747,8 @@ export function Dashboard({ data, setData, showMilestone, onShareStreak, onNewPr
             <DzTeamCollaboration members={displayMembers} onAdd={() => setIsMemberModalOpen(true)} />
           </div>
 
-          <DzProjects projects={data.projects} onNew={() => setIsProjectModalOpen(true)} onToggle={handleToggleProject} />
+          <DzProjects projects={data.projects} onNew={() => setIsProjectModalOpen(true)} onToggle={handleToggleProject} onDelete={handleDeleteProject} />
         </div>
-
-        {quote && <DzQuote quote={quote} />}
       </div>
 
       {isProjectModalOpen && (
