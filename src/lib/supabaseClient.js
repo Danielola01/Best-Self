@@ -8,8 +8,8 @@ let client;
  */
 export function getSupabase() {
   if (client !== undefined) return client;
-  const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   // Basic URL validation to prevent "Failed to fetch" on malformed strings
   const isValidUrl = (str) => {
@@ -35,8 +35,8 @@ export function getSupabase() {
 }
 
 export function isSupabaseConfigured() {
-  const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
   
   const isValidUrl = (str) => {
     try {

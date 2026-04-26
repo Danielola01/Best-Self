@@ -693,6 +693,16 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
       setError("Please sign in to your account to start your subscription.");
       return;
     }
+
+    const annualPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_ANNUAL;
+    const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY;
+    const priceId = (annual ? annualPriceId : monthlyPriceId)?.trim();
+
+    if (!priceId) {
+      setError(`Configuration Error: ${annual ? "VITE_STRIPE_PRICE_ID_ANNUAL" : "VITE_STRIPE_PRICE_ID_MONTHLY"} is missing. Please add it to your AI Studio settings and restart the server.`);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     
@@ -703,17 +713,6 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
     }, 15000);
 
     try {
-      const annualPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_ANNUAL;
-      const monthlyPriceId = import.meta.env.VITE_STRIPE_PRICE_ID_MONTHLY;
-
-      if (annual && (!annualPriceId || annualPriceId.trim() === "")) {
-        throw new Error("Annual Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_ANNUAL to your AI Studio settings.");
-      }
-      if (!annual && (!monthlyPriceId || monthlyPriceId.trim() === "")) {
-        throw new Error("Monthly Price ID is not configured. Please add VITE_STRIPE_PRICE_ID_MONTHLY to your AI Studio settings.");
-      }
-
-      const priceId = (annual ? annualPriceId : monthlyPriceId).trim();
       const email = user.email || supabaseUser?.email || "";
 
       console.log("Initiating checkout session:", { priceId, userId: authUserId, email });

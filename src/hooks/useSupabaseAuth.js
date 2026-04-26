@@ -18,13 +18,16 @@ export function useSupabaseAuth() {
       if (error) {
         console.error("Supabase Session Error:", error.message);
         // If refresh token is invalid (400), sign out to clear local storage
-        if (error.message.includes("Refresh Token Not Found") || error.status === 400) {
-          supabase.auth.signOut();
-          setSession(null);
+        if (error.message.includes("Refresh Token Not Found") || error.status === 400 || error.message.includes("invalid_grant")) {
+          console.warn("Invalid session detected, signing out...");
+          supabase.auth.signOut().then(() => {
+            setSession(null);
+            setLoading(false);
+          });
+          return;
         }
-      } else {
-        setSession(s);
       }
+      setSession(s);
       setLoading(false);
     });
 

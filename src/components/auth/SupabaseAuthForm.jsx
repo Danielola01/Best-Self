@@ -96,7 +96,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
     supabase.auth.getSession().then(({ data: { session }, error }) => {
       if (error) {
         console.error("Auth Form - Session Error:", error.message);
-        if (error.message.includes("Refresh Token Not Found") || error.status === 400) {
+        if (error.message.includes("Refresh Token Not Found") || error.status === 400 || error.message.includes("invalid_grant")) {
           supabase.auth.signOut();
         }
         return;
@@ -230,8 +230,8 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
     const isNetlify = window.location.hostname.includes("netlify.app");
     const isAIStudio = window.location.hostname.includes("europe-west2.run.app") || window.location.hostname.includes("cloud-run");
     const missing = [];
-    const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
-    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+    const url = import.meta.env.VITE_SUPABASE_URL;
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
     if (!url) missing.push("VITE_SUPABASE_URL");
     if (!anon) missing.push("VITE_SUPABASE_ANON_KEY");
 
@@ -252,7 +252,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
                  Then click <b>Restart Server</b>.
                </p>
             ) : isNetlify ? (
-              <p>Your Netlify site needs environment variables in Site Settings > Environment variables. Re-deploy after adding them.</p>
+              <p>Your Netlify site needs environment variables in Site Settings {"->"} Environment variables. Re-deploy after adding them.</p>
             ) : (
               <p>To enable authentication and data sync, you need to provide your Supabase project credentials in your .env file.</p>
             )}
@@ -280,7 +280,7 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
               rel="noopener noreferrer"
               style={{ fontSize: 13, color: GOLD, fontWeight: 700, textDecoration: "none", marginTop: 8 }}
             >
-              Go to Supabase Dashboard &rarr;
+              Go to Supabase Dashboard {"->"}
             </a>
           </div>
         </div>
