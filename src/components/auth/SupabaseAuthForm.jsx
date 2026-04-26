@@ -93,7 +93,14 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
 
   useEffect(() => {
     if (!configured || !supabase) return;
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Auth Form - Session Error:", error.message);
+        if (error.message.includes("Refresh Token Not Found") || error.status === 400) {
+          supabase.auth.signOut();
+        }
+        return;
+      }
       if (session?.user) emitSuccess(session);
     });
   }, [configured, supabase, emitSuccess]);

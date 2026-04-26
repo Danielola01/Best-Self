@@ -14,21 +14,32 @@ export function useSupabaseAuth() {
       return;
     }
 
-    supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s);
+    supabase.auth.getSession().then(({ data: { session: s }, error }) => {
+      if (error) {
+        console.error("Supabase Session Error:", error.message);
+        // If refresh token is invalid (400), sign out to clear local storage
+        if (error.message.includes("Refresh Token Not Found") || error.status === 400) {
+          supabase.auth.signOut();
+          setSession(null);
+        }
+      } else {
+        setSession(s);
+      }
       setLoading(false);
     });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, s) => {
+      console.log("Supabase Auth Event:", event);
       if (event === "TOKEN_REFRESHED") {
         console.log("Supabase Token Refreshed");
       }
       if (event === "SIGNED_OUT") {
-        // Clear local cache if needed
+        setSession(null);
+      } else {
+        setSession(s);
       }
-      setSession(s);
     });
 
     return () => subscription.unsubscribe();
