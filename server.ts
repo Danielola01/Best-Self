@@ -157,41 +157,6 @@ async function startServer() {
     res.json({ received: true });
   });
 
-  app.post("/api/ai/suggestions", async (req, res) => {
-    try {
-      if (!genAI) {
-        return res.status(500).json({ error: "Gemini API key not configured" });
-      }
-
-      const { dim, existingGoals, userName } = req.body;
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-      const existing = existingGoals.filter(Boolean).join(", ") || "none set yet";
-      const prompt = `You are a world-class life coach helping ${userName || "a driven professional"} set powerful ${dim} goals for their 90-day cycle.
-
-Their current ${dim} goals: ${existing}
-
-Generate exactly 3 fresh, specific, ambitious but achievable ${dim} goals for the next 90 days. 
-Return ONLY a JSON array of 3 strings, no preamble, no markdown. Example: ["Goal one","Goal two","Goal three"]`;
-
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-
-      try {
-        const clean = text.replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
-        res.json(parsed);
-      } catch (e) {
-        console.error("AI Parsing Error:", text);
-        res.status(500).json({ error: "Failed to parse AI response" });
-      }
-    } catch (error: any) {
-      console.error("AI Error:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

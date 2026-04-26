@@ -227,20 +227,62 @@ export function SupabaseAuthForm({ onAuthSuccess, onDevBypass }) {
   };
 
   if (!configured) {
+    const isNetlify = window.location.hostname.includes("netlify.app");
+    const isAIStudio = window.location.hostname.includes("europe-west2.run.app") || window.location.hostname.includes("cloud-run");
+    const missing = [];
+    const url = import.meta.env.VITE_SUPABASE_URL || import.meta.env.SUPABASE_URL;
+    const anon = import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.SUPABASE_ANON_KEY;
+    if (!url) missing.push("VITE_SUPABASE_URL");
+    if (!anon) missing.push("VITE_SUPABASE_ANON_KEY");
+
     return (
       <div className="fadein" style={{ minHeight: "100vh", background: "#F9F9F7", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 32 }}>
-        <div style={{ width: "100%", maxWidth: 380, textAlign: "center" }}>
-          <h2 style={{ fontSize: 24, marginBottom: 12, fontFamily: "Inter, serif" }}>
-            Supabase not configured
+        <div style={{ width: "100%", maxWidth: 440, textAlign: "center", background: "white", padding: 40, borderRadius: 24, boxShadow: "0 10px 40px rgba(0,0,0,0.05)" }}>
+          <div style={{ marginBottom: 24, display: "flex", justifyContent: "center" }}>
+            <Logo size={24} />
+          </div>
+          <h2 style={{ fontSize: 24, fontWeight: 800, color: "black", marginBottom: 12 }}>
+            Supabase Not Connected
           </h2>
-          <p style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
-            Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file, then restart the dev server.
-          </p>
-          {onDevBypass && (
-            <button className="tap" onClick={onDevBypass} style={{ ...primaryBtnStyle, borderRadius: 12 }}>
-              Continue offline (local data only)
-            </button>
-          )}
+          <div style={{ color: "#6B7280", fontSize: 14, lineHeight: 1.7, marginBottom: 24 }}>
+            {isAIStudio ? (
+               <p>
+                 <b>AI Studio Action Required:</b> Go to the <b>Settings</b> gear icon in the top right. 
+                 Select <b>Environment Variables</b> and add the keys below. 
+                 Then click <b>Restart Server</b>.
+               </p>
+            ) : isNetlify ? (
+              <p>Your Netlify site needs environment variables in Site Settings > Environment variables. Re-deploy after adding them.</p>
+            ) : (
+              <p>To enable authentication and data sync, you need to provide your Supabase project credentials in your .env file.</p>
+            )}
+          </div>
+
+          <div style={{ textAlign: "left", background: "#F3F4F6", borderRadius: 12, padding: 16, marginBottom: 24 }}>
+            <p style={{ fontSize: 12, fontWeight: 700, color: "#4B5563", marginBottom: 8, textTransform: "uppercase", letterSpacing: "0.05em" }}>Missing Variables:</p>
+            {missing.map(m => (
+              <div key={m} style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 4 }}>
+                <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#EF4444" }} />
+                <code style={{ fontSize: 12, color: "#1F2937", background: "#E5E7EB", padding: "2px 6px", borderRadius: 4 }}>{m}</code>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            {onDevBypass && (
+              <button className="tap" onClick={onDevBypass} style={{ ...primaryBtnStyle, borderRadius: 12, marginBottom: 0 }}>
+                Continue Offline (Local Only)
+              </button>
+            )}
+            <a 
+              href="https://supabase.com/dashboard" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              style={{ fontSize: 13, color: GOLD, fontWeight: 700, textDecoration: "none", marginTop: 8 }}
+            >
+              Go to Supabase Dashboard &rarr;
+            </a>
+          </div>
         </div>
       </div>
     );
