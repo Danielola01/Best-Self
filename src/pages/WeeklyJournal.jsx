@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2, Edit2 } from "lucide-react";
 import { C } from "../theme/colors.js";
 import { newWeek } from "../lib/weekModel.js";
 import { ShareCard } from "../components/journal/ShareCard.jsx";
@@ -10,7 +10,7 @@ import { NumList } from "../components/ui/NumList.jsx";
  * Weekly journaling: plan (intentions), reflect (ahas), week list, share card.
  * Wired to parent app state via `data` / `setData` until a backend replaces localStorage.
  */
-function WeekDetailsModal({ week, weekNum, onClose, onEdit }) {
+function WeekDetailsModal({ week, weekNum, onClose, onEdit, onDelete }) {
   if (!week) return null;
   return (
     <div className="fadein" style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.4)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -73,7 +73,29 @@ function WeekDetailsModal({ week, weekNum, onClose, onEdit }) {
           )}
         </div>
 
-        <Btn full onClick={onEdit}>Edit Week Details</Btn>
+        <div style={{ display: "flex", gap: 12 }}>
+          <Btn full onClick={onEdit} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+            <Edit2 size={16} /> Edit Week
+          </Btn>
+          <Btn 
+            onClick={() => {
+              onDelete();
+            }} 
+            style={{ 
+              background: "#FEE2E2", 
+              color: "#EF4444", 
+              border: "1px solid #FCA5A5",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 50,
+              minWidth: 50,
+              padding: 0
+            }}
+          >
+            <Trash2 size={18} />
+          </Btn>
+        </div>
       </Card>
     </div>
   );
@@ -84,6 +106,7 @@ export function Weekly({ data, setData, authUserId = null }) {
   const [idx, setIdx] = useState(null);
   const [shareIdx, setShareIdx] = useState(null);
   const [detailsIdx, setDetailsIdx] = useState(null);
+  const [deletingIdx, setDeletingIdx] = useState(null);
 
   const add = () => {
     const w = newWeek(authUserId || undefined);
@@ -91,6 +114,15 @@ export function Weekly({ data, setData, authUserId = null }) {
     setData((d) => ({ ...d, weeks: [...d.weeks, w] }));
     setIdx(ni);
     setView("plan");
+  };
+  const del = (i) => {
+    setData((d) => {
+      const ws = [...d.weeks];
+      ws.splice(i, 1);
+      return { ...d, weeks: ws };
+    });
+    setDetailsIdx(null);
+    setDeletingIdx(null);
   };
   const upd = (fn) =>
     setData((d) => {
@@ -291,6 +323,7 @@ export function Weekly({ data, setData, authUserId = null }) {
             setIdx(i);
             setView(data.weeks[i].done ? "reflect" : "plan");
           }}
+          onDelete={() => del(detailsIdx)}
         />
       )}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 40 }}>
@@ -359,31 +392,93 @@ export function Weekly({ data, setData, authUserId = null }) {
                     <p style={{ color: "#9CA3AF", fontSize: 12, fontWeight: 600, marginTop: 2 }}>{new Date(wk.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</p>
                   </div>
                 </div>
-                {wk.done && (
+                <div style={{ display: "flex", gap: 4 }}>
                   <button
                     type="button"
-                    onClick={(e) => { e.stopPropagation(); setShareIdx(i); }}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setIdx(i);
+                      setView(wk.done ? "reflect" : "plan");
+                    }}
                     className="tap"
                     style={{ 
-                      background: "#F3F4F6", 
+                      background: C.forest, 
                       border: "none", 
-                      color: "#111827", 
-                      padding: "6px 12px", 
+                      color: "white", 
+                      width: 32,
+                      height: 32,
                       borderRadius: 8, 
-                      fontSize: 10, 
-                      fontWeight: 800, 
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       cursor: "pointer" 
                     }}
+                    title="Edit Week"
                   >
-                    SHARE
+                    <Edit2 size={14} />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if (deletingIdx === i) {
+                        del(i);
+                      } else {
+                        setDeletingIdx(i);
+                        setTimeout(() => setDeletingIdx(null), 3000); // reset after 3s
+                      }
+                    }}
+                    className="tap"
+                    style={{ 
+                      background: deletingIdx === i ? "#EF4444" : "#FEE2E2", 
+                      border: "none", 
+                      color: deletingIdx === i ? "white" : "#EF4444", 
+                      width: deletingIdx === i ? 70 : 32,
+                      height: 32,
+                      borderRadius: 8, 
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      cursor: "pointer",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      transition: "all 0.2s"
+                    }}
+                    title="Delete Week"
+                  >
+                    {deletingIdx === i ? "CONFIRM" : <Trash2 size={14} />}
+                  </button>
+                </div>
               </div>
               
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <div style={{ background: "#F3F4F6", color: "#4B5563", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{wk.goals.filter(Boolean).length} goals</div>
-                <div style={{ background: "#F3F4F6", color: "#4B5563", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{wk.wins.filter(Boolean).length} wins</div>
-                {wk.done && <div style={{ background: "#E8F9F1", color: C.forest, padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>Complete</div>}
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "space-between", alignItems: "center" }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <div style={{ background: "#F3F4F6", color: "#4B5563", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{wk.goals.filter(Boolean).length} goals</div>
+                  <div style={{ background: "#F3F4F6", color: "#4B5563", padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>{wk.wins.filter(Boolean).length} wins</div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  {wk.done && <div style={{ background: "#E8F9F1", color: C.forest, padding: "4px 10px", borderRadius: 6, fontSize: 11, fontWeight: 700 }}>Complete</div>}
+                  {wk.done && (
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setShareIdx(i); }}
+                      className="tap"
+                      style={{ 
+                        background: C.forest, 
+                        border: "none", 
+                        color: "white", 
+                        padding: "6px 14px", 
+                        borderRadius: 8, 
+                        fontSize: 10, 
+                        fontWeight: 800, 
+                        cursor: "pointer",
+                        boxShadow: `0 4px 12px ${C.forest}40`
+                      }}
+                    >
+                      SHARE
+                    </button>
+                  )}
+                </div>
               </div>
             </Card>
           );

@@ -32,6 +32,7 @@ import { useViewportLayout } from "./hooks/useViewportLayout.js";
 import { useSupabaseAuth } from "./hooks/useSupabaseAuth.js";
 import { SupabaseAuthForm } from "./components/auth/SupabaseAuthForm.jsx";
 import { getSupabase } from "./lib/supabaseClient.js";
+import { getApiUrl } from "./lib/api.js";
 import { GlobalStyles } from "./components/app/GlobalStyles.jsx";
 import { Dashboard } from "./pages/Dashboard.jsx";
 import { Analytics } from "./pages/Analytics.jsx";
@@ -67,7 +68,7 @@ function getMilestone(streak) {
 // ── AI suggestion helper ──
 async function fetchAISuggestions(dim, existingGoals, userName) {
   try {
-    const res = await fetch("/.netlify/functions/ai-suggestions", {
+    const res = await fetch(getApiUrl("/.netlify/functions/ai-suggestions"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ dim, existingGoals, userName })
@@ -717,7 +718,7 @@ function Paywall({ user, supabaseUser, setData, onClose, authUserId }) {
 
       console.log("Initiating checkout session:", { priceId, userId: authUserId, email });
 
-      const response = await fetch("/.netlify/functions/create-checkout", {
+      const response = await fetch(getApiUrl("/.netlify/functions/create-checkout"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
